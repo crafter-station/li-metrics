@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFile, stat } from "node:fs/promises";
 import { basename, resolve } from "node:path";
-import { extractUrn } from "./parse";
+import { extractUrn, parseDecimal } from "./parse";
 import { findExecutable, sha256Bytes, sha256Text } from "./runtime";
 import type { DemographicEntry, MetricReceipt, MetricValues } from "./types";
 
@@ -149,7 +149,7 @@ function worksheetRows(xml: string, strings: string[]): Cell[][] {
         const type = attributes.match(/\bt="([^"]+)"/)?.[1];
         let value: Cell = decodeXml(raw);
         if (type === "s") {
-          const stringIndex = Number.parseInt(raw, 10);
+          const stringIndex = parseInt(raw, 10);
           value =
             stringIndex >= 0 && stringIndex < strings.length
               ? (strings[stringIndex] ?? "")
@@ -157,8 +157,11 @@ function worksheetRows(xml: string, strings: string[]): Cell[][] {
         } else if (type === "b") {
           value = raw === "1";
         } else if (!type || type === "n") {
-          const numericValue = Number.parseFloat(raw);
-          value = Number.isFinite(numericValue) ? numericValue : decodeXml(raw);
+          const numericValue = parseDecimal(raw);
+          value =
+            numericValue !== undefined && Number.isFinite(numericValue)
+              ? numericValue
+              : decodeXml(raw);
         }
         const index = columnIndex(reference);
         while (row.length <= index) {
@@ -210,8 +213,8 @@ function numeric(value: Cell | undefined): number | undefined {
     return value;
   }
   if (typeof value === "string") {
-    const parsed = Number.parseFloat(value.replace(/,/g, ""));
-    return Number.isFinite(parsed) ? parsed : undefined;
+    const parsed = parseDecimal(value.replace(/,/g, ""));
+    return parsed !== undefined && Number.isFinite(parsed) ? parsed : undefined;
   }
   return undefined;
 }

@@ -21,6 +21,14 @@ async function runCli(
 }
 
 describe("CLI process contracts", () => {
+  test("prints help without loading the browser bridge", async () => {
+    const result = await runCli(["--help"]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Usage: li-metrics");
+    expect(result.stderr).toBe("");
+  });
+
   test("doctor exits nonzero when its checks fail", async () => {
     const result = await runCli(["doctor", "--cdp", "1", "--json"], {
       LI_METRICS_AGENT_BROWSER_BIN: "definitely-missing-agent-browser",
@@ -38,5 +46,14 @@ describe("CLI process contracts", () => {
     expect(result.exitCode).toBe(0);
     expect(schema.output.$ref).toBe("#/$defs/MetricReceipt");
     expect(schema.$defs.MetricReceipt).toBeDefined();
+  });
+
+  test("reports parser failures as machine-readable errors", async () => {
+    const result = await runCli(["schema", "--wat"]);
+
+    expect(result.exitCode).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      error: { code: "LI_METRICS_ERROR", message: "Unknown option: --wat" },
+    });
   });
 });

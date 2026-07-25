@@ -41,10 +41,9 @@ bun run native:build
 ./dist/li-metrics doctor
 ```
 
-The current build compiles 95% of analyzed statements statically. Commander
-runs in ScriptC's embedded engine, so builds are host-native and not yet
-cross-compiled. Browser commands still require `agent-browser`, and XLSX
-imports require the system `unzip` executable.
+The current build compiles 100% of analyzed statements statically and does not
+embed a JavaScript engine. Browser commands still require `agent-browser`, and
+XLSX imports require the system `unzip` executable.
 
 ## Commands
 

@@ -1,12 +1,19 @@
 import { describe, expect, test } from "bun:test";
 import {
   extractUrn,
+  parseDecimal,
   parseDisplayNumber,
   parsePostAnalyticsText,
   parseWeeklyCard,
 } from "../src/parse";
 
 describe("LinkedIn analytics parsing", () => {
+  test("parses decimals without a dynamic runtime", () => {
+    expect(parseDecimal("12.5")).toBe(12.5);
+    expect(parseDecimal("-.5")).toBe(-0.5);
+    expect(parseDecimal("1.2.3")).toBeUndefined();
+  });
+
   test("parses live post analytics text", () => {
     const parsed = parsePostAnalyticsText(`
 Post analytics

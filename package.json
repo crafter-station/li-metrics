@@ -42,15 +42,14 @@
     "typecheck": "tsc --noEmit",
     "check": "biome check src tests package.json tsconfig.json biome.json README.md",
     "verify": "bun run typecheck && bun run check && bun test",
-    "native:coverage": "scriptc coverage src/cli.ts --dynamic",
-    "native:build": "mkdir -p dist && scriptc build src/cli.ts --dynamic --no-keep-c -o dist/li-metrics",
+    "native:coverage": "scriptc coverage src/cli.ts",
+    "native:build": "mkdir -p dist && scriptc build src/cli.ts --no-keep-c -o dist/li-metrics",
     "native:smoke": "dist/li-metrics --json schema post.metrics > /tmp/li-metrics-native-schema.json && bun src/cli.ts --json schema post.metrics > /tmp/li-metrics-bun-schema.json && cmp /tmp/li-metrics-native-schema.json /tmp/li-metrics-bun-schema.json",
     "release:check": "bun run verify && bun pm pack --dry-run",
     "prepublishOnly": "bun run release:check"
   },
   "dependencies": {
-    "agent-browser": ">=0.31.1 <0.34.0",
-    "commander": "^14.0.2"
+    "agent-browser": ">=0.31.1 <0.34.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.5",

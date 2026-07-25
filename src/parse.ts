@@ -19,8 +19,42 @@ export function parseInteger(value: string | undefined): number | undefined {
   }
 
   const digits = normalized.replace(/[.,]/g, "");
-  const parsed = Number.parseInt(digits, 10);
+  const parsed = parseInt(digits, 10);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+export function parseDecimal(value: string): number | undefined {
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return undefined;
+  }
+  let index = 0;
+  let sign = 1;
+  if (normalized[0] === "-") {
+    sign = -1;
+    index = 1;
+  } else if (normalized[0] === "+") {
+    index = 1;
+  }
+  let result = 0;
+  let divisor = 1;
+  let decimal = false;
+  let digits = 0;
+  for (; index < normalized.length; index += 1) {
+    const code = normalized.charCodeAt(index);
+    if (code >= 48 && code <= 57) {
+      result = result * 10 + code - 48;
+      digits += 1;
+      if (decimal) {
+        divisor *= 10;
+      }
+    } else if (code === 46 && !decimal) {
+      decimal = true;
+    } else {
+      return undefined;
+    }
+  }
+  return digits > 0 ? (sign * result) / divisor : undefined;
 }
 
 export function parsePercent(value: string | undefined): number | undefined {
@@ -28,8 +62,12 @@ export function parsePercent(value: string | undefined): number | undefined {
     return undefined;
   }
 
-  const parsed = Number.parseFloat(value.replace("%", "").trim());
-  return Number.isFinite(parsed) ? parsed : undefined;
+  const normalized = value.trim();
+  return parseDecimal(
+    normalized.endsWith("%")
+      ? normalized.slice(0, normalized.length - 1)
+      : normalized,
+  );
 }
 
 export function parseDisplayNumber(
@@ -45,8 +83,14 @@ export function parseDisplayNumber(
     return undefined;
   }
 
-  const base = Number.parseFloat(match[1].replace(",", "."));
-  if (!Number.isFinite(base)) {
+  const display = match[1];
+  const comma = display.indexOf(",");
+  const base = parseDecimal(
+    comma >= 0
+      ? `${display.slice(0, comma)}.${display.slice(comma + 1)}`
+      : display,
+  );
+  if (base === undefined || !Number.isFinite(base)) {
     return undefined;
   }
 
