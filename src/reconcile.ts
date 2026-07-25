@@ -13,18 +13,31 @@ function identityTokens(receipt: MetricReceipt): string[] {
   const activityUrn =
     receipt.post.activityUrn ??
     extractUrn(receipt.post.analyticsUrl, "activity");
-  return [shareUrn, activityUrn].filter(
-    (value): value is string => typeof value === "string",
-  );
+  const tokens: string[] = [];
+  if (shareUrn !== undefined) {
+    tokens.push(shareUrn);
+  }
+  if (activityUrn !== undefined) {
+    tokens.push(activityUrn);
+  }
+  return tokens;
 }
 
 function identity(receipts: MetricReceipt[]): PostIdentity {
   const result: PostIdentity = {};
   for (const receipt of receipts) {
-    result.shareUrn ??= receipt.post.shareUrn;
-    result.activityUrn ??= receipt.post.activityUrn;
-    result.publicUrl ??= receipt.post.publicUrl;
-    result.analyticsUrl ??= receipt.post.analyticsUrl;
+    if (result.shareUrn === undefined) {
+      result.shareUrn = receipt.post.shareUrn;
+    }
+    if (result.activityUrn === undefined) {
+      result.activityUrn = receipt.post.activityUrn;
+    }
+    if (result.publicUrl === undefined) {
+      result.publicUrl = receipt.post.publicUrl;
+    }
+    if (result.analyticsUrl === undefined) {
+      result.analyticsUrl = receipt.post.analyticsUrl;
+    }
   }
   return result;
 }

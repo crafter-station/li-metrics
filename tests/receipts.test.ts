@@ -20,7 +20,7 @@ function fixture(): MetricReceipt {
     receiptId: "a".repeat(64),
     post: { shareUrn: "urn:li:share:123" },
     window: { kind: "lifetime" },
-    metrics: { impressions: 10 },
+    metrics: { impressions: 10, linkClicks: undefined },
     provider: { name: "linkedin-dashboard", estimated: true },
     observedAt: "2026-07-25T10:00:00.000Z",
     provenance: { source: "fixture" },
@@ -40,6 +40,7 @@ describe("receipt storage", () => {
     expect(second).toBe(first);
     expect(listed).toHaveLength(1);
     expect(listed[0]?.receipt.receiptId).toBe(receipt.receiptId);
+    expect("linkClicks" in (listed[0]?.receipt.metrics ?? {})).toBe(false);
   });
 
   test("rejects malformed receipts before reconciliation", () => {

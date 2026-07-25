@@ -37,3 +37,16 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun pm pack --destination "$RUNNER_TEMP"
       - run: mkdir "$RUNNER_TEMP/consumer" && cd "$RUNNER_TEMP/consumer" && bun init -y && bun add "$RUNNER_TEMP"/crafter-li-metrics-*.tgz && ./node_modules/.bin/li-metrics --json schema post.metrics
+
+  native:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+      - run: bun install --frozen-lockfile
+      - run: bun run native:coverage
+      - run: bun run native:build
+      - run: bun run native:smoke
+      - run: file dist/li-metrics

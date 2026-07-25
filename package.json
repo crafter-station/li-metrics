@@ -7,7 +7,9 @@
     "analytics",
     "cli",
     "agent-browser",
-    "bun"
+    "bun",
+    "scriptc",
+    "native"
   ],
   "author": "Crafter Station",
   "license": "MIT",
@@ -40,18 +42,22 @@
     "typecheck": "tsc --noEmit",
     "check": "biome check src tests package.json tsconfig.json biome.json README.md",
     "verify": "bun run typecheck && bun run check && bun test",
+    "native:coverage": "scriptc coverage src/cli.ts --dynamic",
+    "native:build": "mkdir -p dist && scriptc build src/cli.ts --dynamic --no-keep-c -o dist/li-metrics",
+    "native:smoke": "dist/li-metrics --json schema post.metrics > /tmp/li-metrics-native-schema.json && bun src/cli.ts --json schema post.metrics > /tmp/li-metrics-bun-schema.json && cmp /tmp/li-metrics-native-schema.json /tmp/li-metrics-bun-schema.json",
     "release:check": "bun run verify && bun pm pack --dry-run",
     "prepublishOnly": "bun run release:check"
   },
   "dependencies": {
     "agent-browser": ">=0.31.1 <0.34.0",
-    "commander": "^14.0.2",
-    "read-excel-file": "^9.3.4"
+    "commander": "^14.0.2"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.5",
     "@types/bun": "^1.3.3",
+    "@types/node": "^26.1.1",
     "fflate": "^0.8.3",
+    "scriptc": "0.0.14",
     "typescript": "^5.9.3"
   }
 }

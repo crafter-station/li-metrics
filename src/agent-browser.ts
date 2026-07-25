@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import type { BrowserConfig } from "./types";
 
 export class BrowserCommandError extends Error {
@@ -27,30 +28,15 @@ export async function readAgentBrowserVersion(
   binary: string,
   timeoutMs: number,
 ): Promise<string> {
-  const processHandle = Bun.spawn([binary, "--version"], {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
-    const exitCode = await Promise.race([
-      processHandle.exited,
-      new Promise<never>((_, reject) => {
-        timeout = setTimeout(() => {
-          processHandle.kill();
-          reject(new Error("agent-browser version check timed out"));
-        }, timeoutMs);
-      }),
-    ]);
-    const output = await new Response(processHandle.stdout).text();
-    if (exitCode !== 0) {
-      throw new Error("agent-browser version check failed");
-    }
-    return output.trim();
-  } finally {
-    if (timeout) {
-      clearTimeout(timeout);
-    }
+    return execFileSync(binary, ["--version"], {
+      encoding: "utf8",
+      timeout: timeoutMs,
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    }).trim();
+  } catch {
+    throw new Error("agent-browser version check failed");
   }
 }
 
@@ -71,47 +57,18 @@ export async function runAgentBrowser(
     String(config.cdpPort),
     ...args,
   ];
-  const processHandle = Bun.spawn(command, {
-    stdin: stdin === undefined ? "ignore" : new Blob([stdin]),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-
   try {
-    const exitCode = await Promise.race([
-      processHandle.exited,
-      new Promise<never>((_, reject) => {
-        timeout = setTimeout(() => {
-          processHandle.kill();
-          reject(
-            new BrowserCommandError(
-              `Browser command timed out after ${config.timeoutMs}ms`,
-              command,
-              "",
-            ),
-          );
-        }, config.timeoutMs);
-      }),
-    ]);
-    const [stdout, stderr] = await Promise.all([
-      new Response(processHandle.stdout).text(),
-      new Response(processHandle.stderr).text(),
-    ]);
-
-    if (exitCode !== 0) {
-      throw new BrowserCommandError(
-        stderr.trim() || `Browser command exited with code ${exitCode}`,
-        command,
-        stderr.trim(),
-      );
-    }
-
-    return stdout.trim();
-  } finally {
-    if (timeout) {
-      clearTimeout(timeout);
-    }
+    return execFileSync(binary, command.slice(1), {
+      encoding: "utf8",
+      input: stdin ?? "",
+      timeout: config.timeoutMs,
+      stdio: ["pipe", "pipe", "pipe"],
+      maxBuffer: 10 * 1024 * 1024,
+      windowsHide: true,
+    }).trim();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new BrowserCommandError(message, command, message);
   }
 }
 
@@ -179,7 +136,14 @@ export class BrowserPage {
         lastError = error;
       }
     }
-    throw lastError ?? new Error("No browser locator candidate matched");
+    if (lastError instanceof Error) {
+      throw lastError;
+    }
+    throw new Error(
+      lastError === undefined
+        ? "No browser locator candidate matched"
+        : String(lastError),
+    );
   }
 
   async scrollDown(pixels: number): Promise<void> {

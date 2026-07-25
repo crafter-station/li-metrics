@@ -1,3 +1,4 @@
+import { sha256Text } from "./runtime";
 import type {
   MetricReceipt,
   MetricValues,
@@ -92,9 +93,13 @@ export function parseWeeklyCard(input: {
 }): WeeklyCard {
   const impressions = input.cardText.match(/([\d.,]+[KM]?)\s+impressions/i);
   const engagements = input.cardText.match(/([\d.,]+[KM]?)\s+engagements/i);
+  const identity = identityFromUrls(input.publicUrl, input.analyticsUrl);
 
   return {
-    ...identityFromUrls(input.publicUrl, input.analyticsUrl),
+    shareUrn: identity.shareUrn,
+    activityUrn: identity.activityUrn,
+    publicUrl: identity.publicUrl,
+    analyticsUrl: identity.analyticsUrl,
     commentary: input.commentary.trim(),
     cardText: input.cardText.trim(),
     cardImpressionsDisplay: impressions?.[1],
@@ -204,7 +209,7 @@ export function createDashboardReceipt(input: {
 
   return {
     receiptVersion: 1,
-    receiptId: new Bun.CryptoHasher("sha256").update(basis).digest("hex"),
+    receiptId: sha256Text(basis),
     post: {
       ...input.identity,
       commentary: input.card?.commentary,

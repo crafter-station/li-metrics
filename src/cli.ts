@@ -8,7 +8,7 @@ import {
 } from "./agent-browser";
 import { capturePost, captureWeek } from "./browser-provider";
 import { importXlsxBatch } from "./import-workflow";
-import { emit, emitError } from "./output";
+import { emit, emitArray, emitError } from "./output";
 import {
   defaultReceiptDirectory,
   listReceipts,
@@ -16,6 +16,7 @@ import {
   writeReceipt,
 } from "./receipts";
 import { reconcileReceipts } from "./reconcile";
+import { findExecutable } from "./runtime";
 import { operationSchemas } from "./schemas";
 import type { BrowserConfig, WeeklyCapture } from "./types";
 
@@ -109,7 +110,7 @@ program
       const config = browserConfig(options);
       const binary =
         process.env.LI_METRICS_AGENT_BROWSER_BIN ?? "agent-browser";
-      const executable = Bun.which(binary);
+      const executable = findExecutable(binary);
       let agentBrowserVersion: string | undefined;
       if (executable) {
         try {
@@ -124,9 +125,13 @@ program
         : false;
       let cdp: { Browser?: string } | undefined;
       try {
-        cdp = (await fetch(`http://127.0.0.1:${config.cdpPort}/json/version`, {
-          signal: AbortSignal.timeout(config.timeoutMs),
-        }).then((response) => response.json())) as { Browser?: string };
+        const response = await fetch(
+          `http://127.0.0.1:${config.cdpPort}/json/version`,
+          {
+            signal: AbortSignal.timeout(config.timeoutMs),
+          },
+        );
+        cdp = JSON.parse(await response.text()) as { Browser?: string };
       } catch {}
       let tabs = "";
       if (executable && cdp) {
@@ -157,7 +162,7 @@ program
         options,
       );
       if (!ok) {
-        process.exitCode = 1;
+        process.exit(1);
       }
     } catch (error) {
       emitError(error);
@@ -170,13 +175,27 @@ program
   .argument("[operation]")
   .action((operation: string | undefined, _options, command) => {
     try {
-      const output = operation
-        ? operationSchemas[operation as keyof typeof operationSchemas]
-        : operationSchemas;
-      if (!output) {
+      const output = operation ? undefined : operationSchemas;
+      if (output) {
+        emit(output, globals(command));
+        return;
+      }
+      const options = globals(command);
+      if (operation === "posts.week") {
+        emit(operationSchemas["posts.week"], options);
+      } else if (operation === "post.metrics") {
+        emit(operationSchemas["post.metrics"], options);
+      } else if (operation === "checkpoint.capture") {
+        emit(operationSchemas["checkpoint.capture"], options);
+      } else if (operation === "import.xlsx") {
+        emit(operationSchemas["import.xlsx"], options);
+      } else if (operation === "reconcile") {
+        emit(operationSchemas.reconcile, options);
+      } else if (operation === "brief.week") {
+        emit(operationSchemas["brief.week"], options);
+      } else {
         throw new Error(`Unknown operation: ${operation}`);
       }
-      emit(output, globals(command));
     } catch (error) {
       emitError(error);
     }
@@ -248,7 +267,7 @@ importCommand
     async (files: string[], local: { dryRun?: boolean }, command: Command) => {
       try {
         const options = globals(command);
-        emit(
+        emitArray(
           await importXlsxBatch(files, {
             dryRun: Boolean(local.dryRun),
             receiptDirectory: options.receiptDir,
@@ -268,7 +287,7 @@ program
   .action(async (files: string[], _options, command) => {
     try {
       const options = globals(command);
-      emit(
+      emitArray(
         reconcileReceipts(await Promise.all(files.map(loadReceipt))),
         options,
       );
@@ -285,7 +304,16 @@ brief
     try {
       const options = globals(command);
       const capture = await captureWeek(browserConfig(options), true);
-      emit({ ...briefFromCapture(capture), evidence: capture }, options);
+      const brief = briefFromCapture(capture);
+      emit(
+        {
+          facts: brief.facts,
+          unknowns: brief.unknowns,
+          actions: brief.actions,
+          evidence: capture,
+        },
+        options,
+      );
     } catch (error) {
       emitError(error);
     }
@@ -298,10 +326,12 @@ receipt
   .action(async (_options, command) => {
     try {
       const options = globals(command);
-      emit(await listReceipts(options.receiptDir), options);
+      emitArray(await listReceipts(options.receiptDir), options);
     } catch (error) {
       emitError(error);
     }
   });
 
-await program.parseAsync();
+program.parseAsync().catch((error): number => {
+  emitError(error instanceof Error ? error.message : String(error));
+});

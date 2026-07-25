@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { importXlsxBatch } from "../src/import-workflow";
+import { importXlsxBatchWith } from "../src/import-workflow";
 import type { MetricReceipt } from "../src/types";
 
 const receipt: MetricReceipt = {
@@ -29,7 +29,7 @@ describe("XLSX batch import", () => {
     };
 
     await expect(
-      importXlsxBatch(["valid.xlsx", "broken.xlsx"], {
+      importXlsxBatchWith(["valid.xlsx", "broken.xlsx"], {
         dryRun: false,
         receiptDirectory: "/tmp",
         importer,

@@ -3,6 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { strToU8, zipSync } from "fflate";
+import { importXlsxBatch } from "../src/import-workflow";
 import {
   defaultXlsxLimits,
   importXlsx,
@@ -87,7 +88,7 @@ describe("XLSX imports", () => {
       ),
     };
     const archive = zipSync(files);
-    inspectXlsxArchive(archive.buffer, defaultXlsxLimits);
+    inspectXlsxArchive(archive, defaultXlsxLimits);
     await Bun.write(path, archive);
 
     const imported = await importXlsx(path);
@@ -100,6 +101,11 @@ describe("XLSX imports", () => {
       { category: "Job title", value: "Software Engineer", percentage: "10%" },
     ]);
     expect(imported.warnings).toEqual([]);
+    const persisted = await importXlsxBatch([path], {
+      dryRun: false,
+      receiptDirectory: directory,
+    });
+    expect(persisted[0]?.path).toBeString();
 
     await expect(
       importXlsx(path, { ...defaultXlsxLimits, maxCompressedBytes: 1 }),
@@ -124,8 +130,8 @@ describe("XLSX imports", () => {
         break;
       }
     }
-    expect(() =>
-      inspectXlsxArchive(oversized.buffer, defaultXlsxLimits),
-    ).toThrow("uncompressed size limit");
+    expect(() => inspectXlsxArchive(oversized, defaultXlsxLimits)).toThrow(
+      "uncompressed size limit",
+    );
   });
 });

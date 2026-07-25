@@ -12,6 +12,7 @@ or call LinkedIn's internal RSC endpoints directly.
 
 - Bun
 - agent-browser `>=0.31.1 <0.34.0`
+- `unzip`
 - Dia running with remote debugging on port `9222`
 - An authenticated LinkedIn session in Dia
 
@@ -28,6 +29,22 @@ For local development:
 bun install
 bun run src/cli.ts doctor
 ```
+
+## Native build
+
+ScriptC can compile the CLI into a host-native executable:
+
+```bash
+bun run native:coverage
+bun run native:build
+./dist/li-metrics --json schema post.metrics
+./dist/li-metrics doctor
+```
+
+The current build compiles 95% of analyzed statements statically. Commander
+runs in ScriptC's embedded engine, so builds are host-native and not yet
+cross-compiled. Browser commands still require `agent-browser`, and XLSX
+imports require the system `unzip` executable.
 
 ## Commands
 

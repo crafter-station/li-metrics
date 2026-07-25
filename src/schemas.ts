@@ -139,7 +139,10 @@ const definitions = {
   },
 } as const;
 
-function operation(input: object, output: object) {
+function operation<TInput extends object, TOutput extends object>(
+  input: TInput,
+  output: TOutput,
+) {
   return {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     $defs: definitions,

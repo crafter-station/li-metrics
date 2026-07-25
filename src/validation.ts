@@ -39,13 +39,12 @@ export function parseMetricReceipt(value: unknown): MetricReceipt {
   }
   nonEmptyString(receipt.receiptId, "receiptId");
   const post = object(receipt.post);
-  const identities = [
-    post.shareUrn,
-    post.activityUrn,
-    post.publicUrl,
-    post.analyticsUrl,
-  ];
-  if (!identities.some((identity) => typeof identity === "string")) {
+  if (
+    typeof post.shareUrn !== "string" &&
+    typeof post.activityUrn !== "string" &&
+    typeof post.publicUrl !== "string" &&
+    typeof post.analyticsUrl !== "string"
+  ) {
     throw new Error("Receipt must contain a post identity");
   }
   const window = object(receipt.window);
@@ -61,6 +60,9 @@ export function parseMetricReceipt(value: unknown): MetricReceipt {
     if (!metricNames.has(name as keyof MetricValues)) {
       throw new Error(`Unknown receipt metric: ${name}`);
     }
+    if (metric === undefined) {
+      continue;
+    }
     if (typeof metric !== "number" || !Number.isFinite(metric)) {
       throw new Error(`Invalid receipt metric: ${name}`);
     }
@@ -73,16 +75,19 @@ export function parseMetricReceipt(value: unknown): MetricReceipt {
     throw new Error("Invalid receipt provider");
   }
   const observedAt = nonEmptyString(receipt.observedAt, "observedAt");
-  if (!Number.isFinite(Date.parse(observedAt))) {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(observedAt)) {
     throw new Error("Invalid receipt observedAt");
   }
   const provenance = object(receipt.provenance);
   nonEmptyString(provenance.source, "provenance.source");
-  if (
-    !Array.isArray(receipt.warnings) ||
-    receipt.warnings.some((warning) => typeof warning !== "string")
-  ) {
+  if (!Array.isArray(receipt.warnings)) {
     throw new Error("Invalid receipt warnings");
+  }
+  const warnings = receipt.warnings as string[];
+  for (const warning of warnings) {
+    if (typeof warning !== "string") {
+      throw new Error("Invalid receipt warnings");
+    }
   }
 
   return value as MetricReceipt;

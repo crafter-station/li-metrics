@@ -16,6 +16,7 @@ import {
   identityFromUrls,
   parseWeeklyCard,
 } from "./parse";
+import { sleep } from "./runtime";
 import type { BrowserConfig, MetricReceipt, WeeklyCapture } from "./types";
 
 const contentAnalyticsUrl =
@@ -58,7 +59,7 @@ async function loadCards(page: BrowserPage): Promise<RawCard[]> {
   let initialCards: RawCard[] = [];
   for (let attempt = 0; attempt < 5; attempt += 1) {
     await page.scrollDown(1200);
-    await Bun.sleep(500);
+    await sleep(500);
     const result = await page.evaluate<{ cards: RawCard[] }>(weeklyCardsScript);
     initialCards = result.cards;
     if (initialCards.length > 0) {
@@ -80,7 +81,7 @@ async function loadCards(page: BrowserPage): Promise<RawCard[]> {
     }
     previousCount = result.cards.length;
     await page.find(["text", result.showMoreText, "click", "--exact"]);
-    await Bun.sleep(500);
+    await sleep(500);
   }
 
   const result = await page.evaluate<{ cards: RawCard[] }>(weeklyCardsScript);
@@ -96,19 +97,28 @@ async function captureDetail(
   await page.goto(analyticsUrl);
   await page.waitForFunction(detailReadyScript);
   const pageText = await page.evaluate<string>(bodyTextScript);
-  const resolvedPublicUrl =
-    publicUrl ??
-    (await page.evaluate<string | null>(publicPostLinkScript)) ??
-    undefined;
+  let resolvedPublicUrl = publicUrl;
+  if (resolvedPublicUrl === undefined) {
+    const evaluatedPublicUrl = await page.evaluate<string | null>(
+      publicPostLinkScript,
+    );
+    if (evaluatedPublicUrl !== null) {
+      resolvedPublicUrl = evaluatedPublicUrl;
+    }
+  }
+  const cardIdentity = identityFromUrls(resolvedPublicUrl, analyticsUrl);
   const receipt = createDashboardReceipt({
     card: commentary
       ? {
-          ...identityFromUrls(resolvedPublicUrl, analyticsUrl),
+          shareUrn: cardIdentity.shareUrn,
+          activityUrn: cardIdentity.activityUrn,
+          publicUrl: cardIdentity.publicUrl,
+          analyticsUrl: cardIdentity.analyticsUrl,
           commentary,
           cardText: "",
         }
       : undefined,
-    identity: identityFromUrls(resolvedPublicUrl, analyticsUrl),
+    identity: cardIdentity,
     observedAt: new Date().toISOString(),
     pageText,
   });
