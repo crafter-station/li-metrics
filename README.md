@@ -72,3 +72,18 @@ languages fail explicitly instead of writing incomplete receipts.
 
 XLSX imports are bounded to 25 MB compressed, 100 MB uncompressed, 1,000 ZIP
 entries, and 10,000 worksheet rows.
+
+## Releases
+
+Releases use npm Trusted Publishing from `.github/workflows/release.yml`.
+Configure the npm publisher with:
+
+- Organization or user: `crafter-station`
+- Repository: `li-metrics`
+- Workflow filename: `release.yml`
+- Environment: none
+- Allowed action: `npm publish`
+
+Run the `Release` workflow and select `patch`, `minor`, or `major`. The first
+run commits the version bump to `main`; the resulting push verifies, publishes,
+tags, and creates the GitHub release through OIDC.
