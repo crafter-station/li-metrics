@@ -15,8 +15,6 @@ on:
           - none
   push:
     branches: [main]
-    paths:
-      - "package.json"
 
 concurrency:
   group: release

@@ -41,10 +41,14 @@ export async function writeReceipt(
 
   writeFileSync(temporaryPath, `${JSON.stringify(receipt)}\n`);
   chmodSync(temporaryPath, 0o600);
-  execFileSync("/bin/sync", ["-f", temporaryPath], {
-    encoding: "utf8",
-    stdio: ["ignore", "ignore", "pipe"],
-  });
+  execFileSync(
+    "/bin/sync",
+    [process.platform === "linux" ? "-d" : "-f", temporaryPath],
+    {
+      encoding: "utf8",
+      stdio: ["ignore", "ignore", "pipe"],
+    },
+  );
   try {
     execFileSync("/bin/ln", [temporaryPath, path], {
       encoding: "utf8",
