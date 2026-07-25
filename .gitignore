@@ -1,0 +1,8 @@
+node_modules/
+coverage/
+*.tgz
+.DS_Store
+/recon.md
+/scaffold.md
+/shaping.md
+/skill-draft.md
