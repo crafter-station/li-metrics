@@ -48,12 +48,50 @@ describe("CLI process contracts", () => {
     expect(schema.$defs.MetricReceipt).toBeDefined();
   });
 
-  test("reports parser failures as machine-readable errors", async () => {
+  test("uses human output by default", async () => {
+    const result = await runCli(["schema", "post.metrics"]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Schema post.metrics");
+    expect(result.stdout).toContain("li-metrics schema post.metrics --json");
+    expect(() => JSON.parse(result.stdout)).toThrow();
+  });
+
+  test("reports parser failures for humans by default", async () => {
     const result = await runCli(["schema", "--wat"]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toBe("✗ Unknown option: --wat\n");
+  });
+
+  test("reports parser failures as JSON when requested", async () => {
+    const result = await runCli(["schema", "--wat", "--json"]);
 
     expect(result.exitCode).toBe(1);
     expect(JSON.parse(result.stderr)).toMatchObject({
       error: { code: "LI_METRICS_ERROR", message: "Unknown option: --wat" },
     });
+  });
+
+  test("serves version-matched agent instructions", async () => {
+    const human = await runCli(["skills", "get", "core"]);
+    const structured = await runCli([
+      "skills",
+      "get",
+      "core",
+      "--full",
+      "--json",
+    ]);
+
+    expect(human.exitCode).toBe(0);
+    expect(human.stdout).toContain("Always pass `--json`");
+    expect(human.stdout).toContain("Never scrape the human output");
+    expect(JSON.parse(structured.stdout)).toMatchObject({
+      name: "core",
+      full: true,
+    });
+    expect(JSON.parse(structured.stdout).content).toContain(
+      "Do not describe lifetime totals as seven-day attribution",
+    );
   });
 });

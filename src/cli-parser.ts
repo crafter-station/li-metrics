@@ -13,6 +13,7 @@ export type ParsedCli = {
   dryRun: boolean;
   details: boolean;
   days: string;
+  full: boolean;
 };
 
 function valueAfter(args: string[], index: number, flag: string): string {
@@ -49,6 +50,7 @@ export function parseCliArgs(
   let dryRun = false;
   let details = true;
   let days = "7";
+  let full = false;
 
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
@@ -74,6 +76,9 @@ export function parseCliArgs(
       dryRun = true;
     } else if (argument === "--no-details") {
       details = false;
+    } else if (argument === "--full") {
+      full = true;
+    } else if (argument === "--color" || argument === "--no-color") {
     } else if (argument === "--cdp") {
       options.cdp = valueAfter(args, index, argument);
       index += 1;
@@ -107,7 +112,11 @@ export function parseCliArgs(
     }
   }
 
-  return { options, positionals, help, dryRun, details, days };
+  if (options.json && options.ndjson) {
+    throw new Error("--json and --ndjson cannot be used together");
+  }
+
+  return { options, positionals, help, dryRun, details, days, full };
 }
 
 export function helpText(path: string[], receiptDirectory: string): string {
@@ -157,6 +166,15 @@ export function helpText(path: string[], receiptDirectory: string): string {
   if (command === "receipt list") {
     return "Usage: li-metrics receipt list\n\nList stored metric receipts.";
   }
+  if (command === "skills") {
+    return "Usage: li-metrics skills <command>\n\nCommands:\n  list             list bundled agent skills\n  get core         print version-matched agent instructions\n  get core --full  print the complete agent guide";
+  }
+  if (command === "skills list") {
+    return "Usage: li-metrics skills list\n\nList bundled agent skills.";
+  }
+  if (command === "skills get") {
+    return "Usage: li-metrics skills get core [--full]\n\nPrint version-matched agent instructions.";
+  }
   if (command.length > 0) {
     throw new Error(`Unknown command: ${command}`);
   }
@@ -165,8 +183,10 @@ export function helpText(path: string[], receiptDirectory: string): string {
 Read-only LinkedIn post analytics through an authenticated browser
 
 Options:
-  --json                    emit compact JSON
-  --ndjson                  emit one JSON object per line
+  --json                    emit compact JSON for agents
+  --ndjson                  emit one JSON object per line for agents
+  --color                   force colors in human output
+  --no-color                disable colors in human output
   --cdp <port>              Dia remote debugging port (default: "9222")
   --timeout <milliseconds>  browser command timeout (default: "20000")
   --receipt-dir <path>      append-only receipt directory (default: "${receiptDirectory}")
@@ -181,5 +201,7 @@ Commands:
   import xlsx <files...>
   reconcile <files...>
   brief week
-  receipt list`;
+  receipt list
+  skills list
+  skills get core [--full]`;
 }

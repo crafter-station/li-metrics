@@ -44,6 +44,9 @@ describe("CLI argument parser", () => {
   test("rejects unknown options and missing values", () => {
     expect(() => parseCliArgs(["--wat"], "/default")).toThrow("Unknown option");
     expect(() => parseCliArgs(["--cdp"], "/default")).toThrow("Missing value");
+    expect(() => parseCliArgs(["--json", "--ndjson"], "/default")).toThrow(
+      "--json and --ndjson cannot be used together",
+    );
   });
 
   test("renders command-specific help", () => {
