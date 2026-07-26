@@ -1,79 +1,44 @@
+import { type Colors, formatError } from "./human-output";
+
 export type OutputOptions = {
   json?: boolean;
   ndjson?: boolean;
 };
 
-function prettyJson(serialized: string): string {
-  let result = "";
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-
-  for (let index = 0; index < serialized.length; index += 1) {
-    const character = serialized[index];
-    if (character === undefined) {
-      continue;
-    }
-    if (inString) {
-      result += character;
-      if (escaped) {
-        escaped = false;
-      } else if (character === "\\") {
-        escaped = true;
-      } else if (character === '"') {
-        inString = false;
-      }
-      continue;
-    }
-    if (character === '"') {
-      inString = true;
-      result += character;
-      continue;
-    }
-    if (character === "{" || character === "[") {
-      depth += 1;
-      result += `${character}\n${"  ".repeat(depth)}`;
-      continue;
-    }
-    if (character === "}" || character === "]") {
-      depth -= 1;
-      result += `\n${"  ".repeat(depth)}${character}`;
-      continue;
-    }
-    if (character === ",") {
-      result += `,\n${"  ".repeat(depth)}`;
-      continue;
-    }
-    if (character === ":") {
-      result += ": ";
-      continue;
-    }
-    result += character;
+export function emit<T>(value: T, options: OutputOptions, human: string): void {
+  if (options.json || options.ndjson) {
+    process.stdout.write(`${JSON.stringify(value)}\n`);
+    return;
   }
-  return result;
+  process.stdout.write(`${human}\n`);
 }
 
-export function emit<T>(value: T, options: OutputOptions): void {
-  const serialized = JSON.stringify(value);
-  process.stdout.write(
-    `${options.json ? serialized : prettyJson(serialized)}\n`,
-  );
-}
-
-export function emitArray<T>(values: T[], options: OutputOptions): void {
+export function emitArray<T>(
+  values: T[],
+  options: OutputOptions,
+  human: string,
+): void {
   if (options.ndjson) {
     for (const item of values) {
       process.stdout.write(`${JSON.stringify(item)}\n`);
     }
     return;
   }
-  emit(values, options);
+  emit(values, options, human);
 }
 
-export function emitError(error: unknown): never {
+export function emitError(
+  error: unknown,
+  options: OutputOptions,
+  colors: Colors,
+): never {
   const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(
-    `${JSON.stringify({ error: { code: "LI_METRICS_ERROR", message } })}\n`,
-  );
+  if (options.json || options.ndjson) {
+    process.stderr.write(
+      `${JSON.stringify({ error: { code: "LI_METRICS_ERROR", message } })}\n`,
+    );
+  } else {
+    process.stderr.write(`${formatError(message, colors)}\n`);
+  }
   process.exit(1);
 }

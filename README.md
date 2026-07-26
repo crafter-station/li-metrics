@@ -48,19 +48,38 @@ XLSX imports require the system `unzip` executable.
 ## Commands
 
 ```bash
-bun run src/cli.ts posts week
-bun run src/cli.ts posts week --no-details
-bun run src/cli.ts post metrics "https://www.linkedin.com/feed/update/urn:li:share:..."
-bun run src/cli.ts checkpoint capture "urn:li:share:..."
-bun run src/cli.ts import xlsx ~/Downloads/SinglePostAnalytics_*.xlsx
-bun run src/cli.ts receipt list
-bun run src/cli.ts reconcile receipt-a.json receipt-b.json
-bun run src/cli.ts brief week
-bun run src/cli.ts schema
+li-metrics posts week
+li-metrics posts week --no-details
+li-metrics post metrics "https://www.linkedin.com/feed/update/urn:li:share:..."
+li-metrics checkpoint capture "urn:li:share:..."
+li-metrics import xlsx ~/Downloads/SinglePostAnalytics_*.xlsx
+li-metrics receipt list
+li-metrics reconcile receipt-a.json receipt-b.json
+li-metrics brief week
+li-metrics schema
 ```
 
-Use `--json` or `--ndjson` for agent pipelines. Set
+The default is concise, colored output for humans. Use `--json` for one
+machine-readable result or `--ndjson` for streams. Agents must always select
+one of those structured modes and must not parse the human presentation.
+
+Set
 `LI_METRICS_AGENT_BROWSER_BIN` only when `agent-browser` is not on `PATH`.
+
+## Agent skill
+
+Install the repository skill, then load the version-matched instructions from
+the CLI:
+
+```bash
+bunx skills add crafter-station/li-metrics -g
+li-metrics skills get core
+li-metrics skills get core --full
+```
+
+The installable discovery stub lives at `skills/li-metrics/SKILL.md`. The
+operational guide is served by the installed CLI so command guidance stays
+aligned with that release.
 
 The browser provider currently supports LinkedIn's 7-day Content analytics
 view. Per-post detail values are lifetime snapshots. Capture consistent

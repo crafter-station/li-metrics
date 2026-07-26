@@ -1,0 +1,26 @@
+{
+  "skill_name": "li-metrics",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Revisa mis posts de LinkedIn de esta semana y dime qué repetirías. No publiques ni escribas archivos.",
+      "expected_output": "Checks readiness and captures the week with --json, separates weekly discovery from lifetime detail metrics, and makes evidence-bounded recommendations without writes.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Saca las métricas de este post de LinkedIn y déjame el resultado listo para procesarlo en otro script: https://www.linkedin.com/feed/update/urn:li:share:123",
+      "expected_output": "Uses post metrics with --json and returns the structured receipt without parsing or reproducing human-mode output.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Compara estos dos receipts y dime si LinkedIn revisó alguna métrica hacia abajo.",
+      "expected_output": "Uses reconcile with --json, reports revisionDetected and metric deltas, and describes downward changes as platform revisions rather than audience loss.",
+      "files": [
+        "receipt-a.json",
+        "receipt-b.json"
+      ]
+    }
+  ]
+}
