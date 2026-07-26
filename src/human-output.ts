@@ -56,6 +56,24 @@ const metricLabels: Record<keyof MetricValues, string> = {
   outOfNetworkPercent: "Out of network",
 };
 
+const metricOrder: Array<keyof MetricValues> = [
+  "impressions",
+  "membersReached",
+  "profileViews",
+  "followersGained",
+  "socialEngagements",
+  "reactions",
+  "comments",
+  "reposts",
+  "saves",
+  "sends",
+  "linkClicks",
+  "linkEngagements",
+  "premiumCtaEngagements",
+  "inNetworkPercent",
+  "outOfNetworkPercent",
+];
+
 function number(value: number): string {
   return value.toLocaleString("en-US");
 }
@@ -138,17 +156,22 @@ export function formatDoctor(result: DoctorResult, colors: Colors): string {
 
 export function formatReceipt(receipt: MetricReceipt, colors: Colors): string {
   const title = headline(receipt.post.commentary, identity(receipt));
-  const metricLines = (
-    Object.entries(receipt.metrics) as Array<[keyof MetricValues, number]>
-  ).map(([metric, value]) => {
+  const metricLines: string[] = [];
+  for (const metric of metricOrder) {
+    const value = receipt.metrics[metric];
+    if (value === undefined) {
+      continue;
+    }
     const formatted = percentageMetric(metric)
       ? `${number(value)}%`
       : number(value);
-    return line(
-      `${metricLabels[metric].padEnd(24)} ${colors.bold(formatted)}`,
-      colors,
+    metricLines.push(
+      line(
+        `${metricLabels[metric].padEnd(24)} ${colors.bold(formatted)}`,
+        colors,
+      ),
     );
-  });
+  }
 
   return [
     colors.bold(title),

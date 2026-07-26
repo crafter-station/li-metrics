@@ -8,7 +8,7 @@ async function runCli(
   env?: Record<string, string>,
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   const processHandle = Bun.spawn(["bun", cliPath, ...args], {
-    env: { ...process.env, ...env },
+    env: { ...process.env, NO_COLOR: "1", ...env },
     stdout: "pipe",
     stderr: "pipe",
   });
