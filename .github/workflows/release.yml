@@ -54,7 +54,8 @@ jobs:
           git push
 
   release:
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.bump == 'none')
+    needs: bump
+    if: always() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (inputs.bump == 'none' || needs.bump.result == 'success')))
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -63,6 +64,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: main
 
       - uses: oven-sh/setup-bun@v2
         with:
