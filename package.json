@@ -1,6 +1,6 @@
 {
   "name": "@crafter/li-metrics",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Read-only LinkedIn post analytics CLI for authenticated browser sessions",
   "keywords": [
     "linkedin",
