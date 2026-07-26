@@ -1,8 +1,11 @@
 import type { ImportBatchResult } from "./import-workflow";
 import type {
+  BackfillResult,
+  CohortReport,
   MetricReceipt,
   MetricValues,
   ReconciliationResult,
+  TrendReport,
   WeeklyCapture,
 } from "./types";
 
@@ -76,6 +79,16 @@ const metricOrder: Array<keyof MetricValues> = [
 
 function number(value: number): string {
   return value.toLocaleString("en-US");
+}
+
+function decimal(value: number, digits: number): string {
+  const factor = digits === 1 ? 10 : 100;
+  const rounded = Math.round(value * factor);
+  const sign = rounded < 0 ? "-" : "";
+  const absolute = Math.abs(rounded);
+  const whole = Math.floor(absolute / factor);
+  const fraction = String(absolute % factor).padStart(digits, "0");
+  return `${sign}${whole}.${fraction}`;
 }
 
 function line(value: string, colors: Colors): string {
@@ -259,6 +272,39 @@ export function formatCheckpoint(
   ].join("\n");
 }
 
+export function formatBackfill(
+  results: BackfillResult[],
+  colors: Colors,
+): string {
+  const succeeded = results.filter((result) => result.ok);
+  const failed = results.filter((result) => !result.ok);
+  return [
+    colors.bold(
+      `Backfilled ${succeeded.length}/${results.length} LinkedIn post(s)`,
+    ),
+    ...results.flatMap((result) => {
+      if (!result.ok) {
+        return [
+          "",
+          `${colors.red("✗")} ${colors.bold(result.input)}`,
+          line(result.error, colors),
+        ];
+      }
+      return [
+        "",
+        `${colors.green("✓")} ${colors.bold(headline(result.receipt.post.commentary, identity(result.receipt)))}`,
+        line(compactMetrics(result.receipt.metrics, colors), colors),
+        line(result.path ?? "Dry run, receipt not written", colors),
+      ];
+    }),
+    failed.length > 0
+      ? `\n${colors.yellow(`${failed.length} post(s) failed`)}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 export function formatImports(
   results: ImportBatchResult[],
   colors: Colors,
@@ -359,6 +405,91 @@ export function formatReceiptList(
       line(compactMetrics(receipt.metrics, colors), colors),
       line(`${receipt.observedAt} · ${path}`, colors),
     ]),
+  ].join("\n");
+}
+
+function trendIdentity(result: TrendReport["trends"][number]): string {
+  return (
+    result.identity.publicUrl ??
+    result.identity.analyticsUrl ??
+    result.identity.shareUrn ??
+    result.identity.activityUrn ??
+    "unknown post"
+  );
+}
+
+export function formatTrend(report: TrendReport, colors: Colors): string {
+  const rows = report.trends.flatMap((trend, index) => {
+    const changes =
+      trend.differences.length > 0
+        ? trend.differences.map((difference) => {
+            const delta =
+              difference.delta > 0
+                ? colors.green(`+${number(difference.delta)}`)
+                : colors.red(number(difference.delta));
+            return line(
+              `${metricLabels[difference.metric]} ${number(difference.from)} → ${number(difference.to)} (${delta})`,
+              colors,
+            );
+          })
+        : [line("No metric changes", colors)];
+    return [
+      "",
+      `${colors.cyan(String(index + 1).padStart(2, "0"))} ${colors.bold(trendIdentity(trend))}`,
+      line(
+        `${trend.receiptCount} checkpoints · ${decimal(trend.elapsedDays, 1)} days`,
+        colors,
+      ),
+      ...changes,
+      trend.revisionDetected
+        ? line(colors.yellow("LinkedIn revision detected"), colors)
+        : "",
+    ];
+  });
+
+  return [
+    colors.bold("LinkedIn checkpoint trends"),
+    colors.cyan(
+      `${report.comparablePostCount}/${report.postCount} posts have comparable checkpoints`,
+    ),
+    ...rows,
+    report.insufficientHistoryCount > 0
+      ? `\n${colors.dim(`${report.insufficientHistoryCount} post(s) need another checkpoint`)}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function rate(value: number | undefined): string {
+  return value === undefined ? "n/a" : `${decimal(value, 2)}%`;
+}
+
+export function formatCohort(report: CohortReport, colors: Colors): string {
+  const totals = compactMetrics(report.totals, colors);
+  return [
+    `${colors.bold("LinkedIn cohort")} ${colors.dim(`since ${report.since}`)}`,
+    colors.cyan(
+      `${report.postCount} posts${totals.length > 0 ? ` · ${totals}` : ""}`,
+    ),
+    ...report.posts.flatMap((post, index) => {
+      const id =
+        post.identity.publicUrl ??
+        post.identity.analyticsUrl ??
+        post.identity.shareUrn ??
+        post.identity.activityUrn ??
+        post.receiptId;
+      return [
+        "",
+        `${colors.cyan(String(index + 1).padStart(2, "0"))} ${colors.bold(id)}`,
+        line(compactMetrics(post.metrics, colors), colors),
+        line(
+          `engagement ${rate(post.rates.engagement)} · profile ${rate(post.rates.profileView)} · followers ${rate(post.rates.followerConversion)} · saves ${rate(post.rates.save)}`,
+          colors,
+        ),
+        line(`Published ${post.publishedAt}`, colors),
+      ];
+    }),
   ].join("\n");
 }
 

@@ -13,17 +13,21 @@ import {
 } from "./cli-parser";
 import {
   type Colors,
+  formatBackfill,
   formatBrief,
   formatCheckpoint,
+  formatCohort,
   formatDoctor,
   formatImports,
   formatReceipt,
   formatReceiptList,
   formatReconciliations,
   formatSchema,
+  formatTrend,
   formatWeeklyCapture,
 } from "./human-output";
 import { importXlsxBatch } from "./import-workflow";
+import { buildCohortReport, buildTrendReport } from "./local-analytics";
 import { emit, emitArray, emitError } from "./output";
 import {
   defaultReceiptDirectory,
@@ -35,7 +39,12 @@ import { reconcileReceipts } from "./reconcile";
 import { findExecutable } from "./runtime";
 import { operationSchemas } from "./schemas";
 import { getSkill, skillNames } from "./skill-content";
-import type { BrowserConfig, MetricReceipt, WeeklyCapture } from "./types";
+import type {
+  BackfillResult,
+  BrowserConfig,
+  MetricReceipt,
+  WeeklyCapture,
+} from "./types";
 
 function browserConfig(options: CliOptions): BrowserConfig {
   const cdpPort = parseInt(options.cdp, 10);
@@ -149,6 +158,12 @@ function emitSchema(
     emit(operationSchemas["post.metrics"], options, human);
   } else if (operation === "checkpoint.capture") {
     emit(operationSchemas["checkpoint.capture"], options, human);
+  } else if (operation === "backfill") {
+    emit(operationSchemas.backfill, options, human);
+  } else if (operation === "trend") {
+    emit(operationSchemas.trend, options, human);
+  } else if (operation === "cohort") {
+    emit(operationSchemas.cohort, options, human);
   } else if (operation === "import.xlsx") {
     emit(operationSchemas["import.xlsx"], options, human);
   } else if (operation === "reconcile") {
@@ -325,6 +340,53 @@ async function runCli(parsed: ParsedCli, colors: Colors): Promise<void> {
       : await writeReceipt(receipt, parsed.options.receiptDir);
     const result = { receipt, path };
     emit(result, parsed.options, formatCheckpoint(result, colors));
+    return;
+  }
+  if (command === "backfill") {
+    const inputs = values.slice(1);
+    if (inputs.length === 0) {
+      throw new Error("Missing argument: posts");
+    }
+    const results: BackfillResult[] = [];
+    for (const input of inputs) {
+      try {
+        const receipt = await capturePost(browserConfig(parsed.options), input);
+        const path = parsed.dryRun
+          ? null
+          : await writeReceipt(receipt, parsed.options.receiptDir);
+        results.push({ input, ok: true, receipt, path });
+      } catch (error) {
+        results.push({
+          input,
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    emitArray(results, parsed.options, formatBackfill(results, colors));
+    if (results.some((result) => !result.ok)) {
+      process.exit(1);
+    }
+    return;
+  }
+  if (command === "trend") {
+    exactLength(values, 1);
+    const stored = await listReceipts(parsed.options.receiptDir);
+    const report = buildTrendReport(stored.map(({ receipt }) => receipt));
+    emit(report, parsed.options, formatTrend(report, colors));
+    return;
+  }
+  if (command === "cohort") {
+    exactLength(values, 1);
+    if (!parsed.since) {
+      throw new Error("Missing option: --since YYYY-MM-DD");
+    }
+    const stored = await listReceipts(parsed.options.receiptDir);
+    const report = buildCohortReport(
+      stored.map(({ receipt }) => receipt),
+      parsed.since,
+    );
+    emit(report, parsed.options, formatCohort(report, colors));
     return;
   }
   if (command === "import" && positional(values, 1, "subcommand") === "xlsx") {

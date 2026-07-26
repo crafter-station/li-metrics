@@ -52,6 +52,9 @@ li-metrics posts week
 li-metrics posts week --no-details
 li-metrics post metrics "https://www.linkedin.com/feed/update/urn:li:share:..."
 li-metrics checkpoint capture "urn:li:share:..."
+li-metrics backfill "urn:li:activity:..." "urn:li:activity:..."
+li-metrics trend
+li-metrics cohort --since 2026-06-30
 li-metrics import xlsx ~/Downloads/SinglePostAnalytics_*.xlsx
 li-metrics receipt list
 li-metrics reconcile receipt-a.json receipt-b.json
@@ -65,6 +68,17 @@ one of those structured modes and must not parse the human presentation.
 
 Set
 `LI_METRICS_AGENT_BROWSER_BIN` only when `agent-browser` is not on `PATH`.
+
+`backfill` captures multiple posts sequentially and writes one append-only
+lifetime receipt per successful input. It continues after individual failures
+and exits nonzero when any input fails.
+
+`trend` and `cohort` are local-only. `trend` compares the earliest and latest
+checkpoint for each post. `cohort --since YYYY-MM-DD` keeps the latest receipt
+for posts published on or after the selected date, ranks them by impressions,
+and reports engagement, profile-view, follower-conversion, and save rates.
+Publication dates are derived from LinkedIn activity or share URNs when a
+receipt does not include an explicit date.
 
 ## Agent skill
 

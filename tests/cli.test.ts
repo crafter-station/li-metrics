@@ -48,6 +48,18 @@ describe("CLI process contracts", () => {
     expect(schema.$defs.MetricReceipt).toBeDefined();
   });
 
+  test("ships schemas for local analytics commands", async () => {
+    const trend = await runCli(["schema", "trend", "--json"]);
+    const cohort = await runCli(["schema", "cohort", "--json"]);
+    const backfill = await runCli(["schema", "backfill", "--json"]);
+
+    expect(JSON.parse(trend.stdout).output.$ref).toBe("#/$defs/TrendReport");
+    expect(JSON.parse(cohort.stdout).output.$ref).toBe("#/$defs/CohortReport");
+    expect(JSON.parse(backfill.stdout).output.items.$ref).toBe(
+      "#/$defs/BackfillResult",
+    );
+  });
+
   test("uses human output by default", async () => {
     const result = await runCli(["schema", "post.metrics"]);
 

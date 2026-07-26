@@ -1,11 +1,19 @@
 import { describe, expect, test } from "bun:test";
 import pc from "picocolors";
 import {
+  formatBackfill,
+  formatCohort,
   formatDoctor,
   formatReceipt,
+  formatTrend,
   formatWeeklyCapture,
 } from "../src/human-output";
-import type { MetricReceipt, WeeklyCapture } from "../src/types";
+import type {
+  CohortReport,
+  MetricReceipt,
+  TrendReport,
+  WeeklyCapture,
+} from "../src/types";
 
 const receipt: MetricReceipt = {
   receiptVersion: 1,
@@ -79,5 +87,68 @@ describe("human output", () => {
 
     expect(output).toContain("\u001b[");
     expect(output).toContain("li-metrics is ready");
+  });
+
+  test("formats batch, trend, and cohort reports for humans", () => {
+    const colors = pc.createColors(false);
+    const backfill = formatBackfill(
+      [
+        { input: "post-a", ok: true, receipt, path: "/tmp/receipt.json" },
+        { input: "post-b", ok: false, error: "not found" },
+      ],
+      colors,
+    );
+    const trendReport: TrendReport = {
+      generatedAt: receipt.observedAt,
+      postCount: 1,
+      comparablePostCount: 1,
+      insufficientHistoryCount: 0,
+      trends: [
+        {
+          identity: receipt.post,
+          receiptCount: 2,
+          firstObservedAt: "2026-07-24T12:00:00.000Z",
+          latestObservedAt: receipt.observedAt,
+          elapsedDays: 1,
+          differences: [
+            {
+              metric: "impressions",
+              from: 100000,
+              to: 120164,
+              delta: 20164,
+              direction: "up",
+            },
+          ],
+          revisionDetected: false,
+        },
+      ],
+    };
+    const cohortReport: CohortReport = {
+      generatedAt: receipt.observedAt,
+      since: "2026-07-01",
+      postCount: 1,
+      totals: receipt.metrics,
+      averages: receipt.metrics,
+      posts: [
+        {
+          identity: receipt.post,
+          publishedAt: "2026-07-14T12:00:00.000Z",
+          observedAt: receipt.observedAt,
+          receiptId: receipt.receiptId,
+          metrics: receipt.metrics,
+          rates: {
+            engagement: 0.53,
+            profileView: 0.09,
+            followerConversion: 0.04,
+            save: 0.14,
+          },
+        },
+      ],
+    };
+
+    expect(backfill).toContain("Backfilled 1/2");
+    expect(backfill).toContain("1 post(s) failed");
+    expect(formatTrend(trendReport, colors)).toContain("+20,164");
+    expect(formatCohort(cohortReport, colors)).toContain("engagement 0.53%");
   });
 });

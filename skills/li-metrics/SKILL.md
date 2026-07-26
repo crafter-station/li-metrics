@@ -1,6 +1,6 @@
 ---
 name: li-metrics
-description: Read-only LinkedIn post analytics through an authenticated browser. Use when agents need weekly post discovery, post metrics, checkpoints, XLSX imports, reconciliation, or evidence-backed weekly decisions.
+description: Read-only LinkedIn post analytics through an authenticated browser. Use when agents need weekly post discovery, post metrics, batch backfills, checkpoints, local trends, cohorts, XLSX imports, reconciliation, or evidence-backed weekly decisions.
 allowed-tools: Bash(li-metrics:*)
 ---
 

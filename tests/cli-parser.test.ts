@@ -14,6 +14,8 @@ describe("CLI argument parser", () => {
         "--receipt-dir",
         "/tmp/receipts",
         "--days=7",
+        "--since",
+        "2026-06-30",
         "--no-details",
       ],
       "/default",
@@ -28,6 +30,7 @@ describe("CLI argument parser", () => {
       receiptDir: "/tmp/receipts",
     });
     expect(parsed.days).toBe("7");
+    expect(parsed.since).toBe("2026-06-30");
     expect(parsed.details).toBe(false);
   });
 
@@ -53,5 +56,7 @@ describe("CLI argument parser", () => {
     expect(helpText(["post", "metrics"], "/default")).toContain(
       "li-metrics post metrics <post>",
     );
+    expect(helpText(["backfill"], "/default")).toContain("li-metrics backfill");
+    expect(helpText(["cohort"], "/default")).toContain("--since YYYY-MM-DD");
   });
 });

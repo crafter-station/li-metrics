@@ -13,6 +13,7 @@ export type ParsedCli = {
   dryRun: boolean;
   details: boolean;
   days: string;
+  since?: string;
   full: boolean;
 };
 
@@ -50,6 +51,7 @@ export function parseCliArgs(
   let dryRun = false;
   let details = true;
   let days = "7";
+  let since: string | undefined;
   let full = false;
 
   for (let index = 0; index < args.length; index += 1) {
@@ -91,11 +93,15 @@ export function parseCliArgs(
     } else if (argument === "--days") {
       days = valueAfter(args, index, argument);
       index += 1;
+    } else if (argument === "--since") {
+      since = valueAfter(args, index, argument);
+      index += 1;
     } else {
       const cdp = inlineValue(argument, "--cdp");
       const timeout = inlineValue(argument, "--timeout");
       const receiptDirectory = inlineValue(argument, "--receipt-dir");
       const selectedDays = inlineValue(argument, "--days");
+      const selectedSince = inlineValue(argument, "--since");
       if (cdp !== undefined) {
         options.cdp = cdp;
       } else if (timeout !== undefined) {
@@ -104,6 +110,8 @@ export function parseCliArgs(
         options.receiptDir = receiptDirectory;
       } else if (selectedDays !== undefined) {
         days = selectedDays;
+      } else if (selectedSince !== undefined) {
+        since = selectedSince;
       } else if (argument.startsWith("-")) {
         throw new Error(`Unknown option: ${argument}`);
       } else {
@@ -116,7 +124,16 @@ export function parseCliArgs(
     throw new Error("--json and --ndjson cannot be used together");
   }
 
-  return { options, positionals, help, dryRun, details, days, full };
+  return {
+    options,
+    positionals,
+    help,
+    dryRun,
+    details,
+    days,
+    since,
+    full,
+  };
 }
 
 export function helpText(path: string[], receiptDirectory: string): string {
@@ -144,6 +161,15 @@ export function helpText(path: string[], receiptDirectory: string): string {
   }
   if (command === "checkpoint capture") {
     return "Usage: li-metrics checkpoint capture [--dry-run] <post>\n\nCapture and persist an append-only metric receipt.";
+  }
+  if (command === "backfill") {
+    return "Usage: li-metrics backfill [--dry-run] <posts...>\n\nCapture and persist lifetime receipts for multiple LinkedIn posts.";
+  }
+  if (command === "trend") {
+    return "Usage: li-metrics trend\n\nCompare the first and latest local checkpoint for each post.";
+  }
+  if (command === "cohort") {
+    return "Usage: li-metrics cohort --since YYYY-MM-DD\n\nRank the latest local receipt for posts published on or after a date.";
   }
   if (command === "import") {
     return "Usage: li-metrics import <command>\n\nCommands:\n  xlsx <files...>  import LinkedIn single-post XLSX exports";
@@ -198,6 +224,9 @@ Commands:
   posts week
   post metrics <post>
   checkpoint capture <post>
+  backfill <posts...>
+  trend
+  cohort --since YYYY-MM-DD
   import xlsx <files...>
   reconcile <files...>
   brief week

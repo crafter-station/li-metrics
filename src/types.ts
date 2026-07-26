@@ -100,3 +100,57 @@ export type ReconciliationResult = {
   differences: ReconciliationDifference[];
   revisionDetected: boolean;
 };
+
+export type BackfillResult =
+  | {
+      input: string;
+      ok: true;
+      receipt: MetricReceipt;
+      path: string | null;
+    }
+  | {
+      input: string;
+      ok: false;
+      error: string;
+    };
+
+export type TrendResult = {
+  identity: PostIdentity;
+  receiptCount: number;
+  firstObservedAt: string;
+  latestObservedAt: string;
+  elapsedDays: number;
+  differences: ReconciliationDifference[];
+  revisionDetected: boolean;
+};
+
+export type TrendReport = {
+  generatedAt: string;
+  postCount: number;
+  comparablePostCount: number;
+  insufficientHistoryCount: number;
+  trends: TrendResult[];
+};
+
+export type CohortPost = {
+  identity: PostIdentity;
+  publishedAt: string;
+  observedAt: string;
+  receiptId: string;
+  metrics: MetricValues;
+  rates: {
+    engagement?: number;
+    profileView?: number;
+    followerConversion?: number;
+    save?: number;
+  };
+};
+
+export type CohortReport = {
+  generatedAt: string;
+  since: string;
+  postCount: number;
+  totals: MetricValues;
+  averages: MetricValues;
+  posts: CohortPost[];
+};

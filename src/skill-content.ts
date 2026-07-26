@@ -10,6 +10,8 @@ Always pass \`--json\` when consuming one result and \`--ndjson\` when streaming
 li-metrics doctor --json
 li-metrics posts week --json
 li-metrics post metrics "<LinkedIn post URL or URN>" --json
+li-metrics trend --json
+li-metrics cohort --since 2026-06-30 --json
 \`\`\`
 
 Never scrape the human output. Treat JSON schemas as the machine contract:
@@ -61,6 +63,24 @@ li-metrics receipt list --json
 
 Checkpoint capture writes a local immutable receipt. Use \`--dry-run\` when the user did not authorize a filesystem write.
 
+## Batch backfill
+
+\`\`\`bash
+li-metrics backfill "<post-a>" "<post-b>" --json
+li-metrics backfill "<post-a>" "<post-b>" --dry-run --json
+\`\`\`
+
+Backfill captures inputs sequentially and writes one append-only lifetime receipt per successful post. It continues after individual failures and exits nonzero if any input failed. Inspect every result's \`ok\` field.
+
+## Local trends and cohorts
+
+\`\`\`bash
+li-metrics trend --json
+li-metrics cohort --since 2026-06-30 --json
+\`\`\`
+
+These commands do not contact LinkedIn. Trend requires at least two checkpoints for a post and compares its earliest and latest receipts. Cohort uses the latest receipt per post and derives publication dates from LinkedIn URNs when necessary. Treat cohort totals as summed lifetime snapshots, not period attribution.
+
 ## LinkedIn XLSX exports
 
 \`\`\`bash
@@ -99,6 +119,9 @@ li-metrics schema --json
 li-metrics schema posts.week --json
 li-metrics schema post.metrics --json
 li-metrics schema checkpoint.capture --json
+li-metrics schema backfill --json
+li-metrics schema trend --json
+li-metrics schema cohort --json
 li-metrics schema import.xlsx --json
 li-metrics schema reconcile --json
 li-metrics schema brief.week --json

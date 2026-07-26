@@ -137,6 +137,132 @@ const definitions = {
       revisionDetected: { type: "boolean" },
     },
   },
+  BackfillResult: {
+    oneOf: [
+      {
+        type: "object",
+        required: ["input", "ok", "receipt", "path"],
+        properties: {
+          input: { type: "string" },
+          ok: { const: true },
+          receipt: { $ref: "#/$defs/MetricReceipt" },
+          path: { type: ["string", "null"] },
+        },
+      },
+      {
+        type: "object",
+        required: ["input", "ok", "error"],
+        properties: {
+          input: { type: "string" },
+          ok: { const: false },
+          error: { type: "string" },
+        },
+      },
+    ],
+  },
+  TrendResult: {
+    type: "object",
+    required: [
+      "identity",
+      "receiptCount",
+      "firstObservedAt",
+      "latestObservedAt",
+      "elapsedDays",
+      "differences",
+      "revisionDetected",
+    ],
+    properties: {
+      identity: { $ref: "#/$defs/PostIdentity" },
+      receiptCount: { type: "integer" },
+      firstObservedAt: { type: "string", format: "date-time" },
+      latestObservedAt: { type: "string", format: "date-time" },
+      elapsedDays: { type: "number" },
+      differences: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["metric", "from", "to", "delta", "direction"],
+          properties: {
+            metric: { type: "string" },
+            from: { type: "number" },
+            to: { type: "number" },
+            delta: { type: "number" },
+            direction: { enum: ["up", "down"] },
+          },
+        },
+      },
+      revisionDetected: { type: "boolean" },
+    },
+  },
+  TrendReport: {
+    type: "object",
+    required: [
+      "generatedAt",
+      "postCount",
+      "comparablePostCount",
+      "insufficientHistoryCount",
+      "trends",
+    ],
+    properties: {
+      generatedAt: { type: "string", format: "date-time" },
+      postCount: { type: "integer" },
+      comparablePostCount: { type: "integer" },
+      insufficientHistoryCount: { type: "integer" },
+      trends: {
+        type: "array",
+        items: { $ref: "#/$defs/TrendResult" },
+      },
+    },
+  },
+  CohortPost: {
+    type: "object",
+    required: [
+      "identity",
+      "publishedAt",
+      "observedAt",
+      "receiptId",
+      "metrics",
+      "rates",
+    ],
+    properties: {
+      identity: { $ref: "#/$defs/PostIdentity" },
+      publishedAt: { type: "string", format: "date-time" },
+      observedAt: { type: "string", format: "date-time" },
+      receiptId: { type: "string" },
+      metrics: { $ref: "#/$defs/MetricValues" },
+      rates: {
+        type: "object",
+        properties: {
+          engagement: { type: "number" },
+          profileView: { type: "number" },
+          followerConversion: { type: "number" },
+          save: { type: "number" },
+        },
+      },
+    },
+  },
+  CohortReport: {
+    type: "object",
+    required: [
+      "generatedAt",
+      "since",
+      "postCount",
+      "totals",
+      "averages",
+      "posts",
+    ],
+    properties: {
+      generatedAt: { type: "string", format: "date-time" },
+      since: { type: "string", format: "date" },
+      postCount: { type: "integer" },
+      totals: { $ref: "#/$defs/MetricValues" },
+      averages: { $ref: "#/$defs/MetricValues" },
+      posts: {
+        type: "array",
+        items: { $ref: "#/$defs/CohortPost" },
+      },
+    },
+  },
 } as const;
 
 function operation<TInput extends object, TOutput extends object>(
@@ -187,6 +313,34 @@ export const operationSchemas = {
         path: { type: ["string", "null"] },
       },
     },
+  ),
+  backfill: operation(
+    {
+      type: "object",
+      required: ["posts"],
+      properties: {
+        posts: { type: "array", items: { type: "string" }, minItems: 1 },
+        dryRun: { type: "boolean" },
+      },
+    },
+    {
+      type: "array",
+      items: { $ref: "#/$defs/BackfillResult" },
+    },
+  ),
+  trend: operation(
+    { type: "object", properties: {} },
+    { $ref: "#/$defs/TrendReport" },
+  ),
+  cohort: operation(
+    {
+      type: "object",
+      required: ["since"],
+      properties: {
+        since: { type: "string", format: "date" },
+      },
+    },
+    { $ref: "#/$defs/CohortReport" },
   ),
   "import.xlsx": operation(
     {
