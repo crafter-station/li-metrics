@@ -80,6 +80,27 @@ and reports engagement, profile-view, follower-conversion, and save rates.
 Publication dates are derived from LinkedIn activity or share URNs when a
 receipt does not include an explicit date.
 
+### Reconcile
+
+`reconcile` compares the earliest and latest receipt for each post, joining
+receipts that share the same share or activity URN. It reports metric
+differences and sets `revisionDetected: true` when a metric moved down, which
+is a LinkedIn revision rather than negative audience behavior. It never
+overwrites receipt history.
+
+```bash
+li-metrics reconcile receipt-a.json receipt-b.json
+```
+
+Example output:
+
+```text
+Reconciled 1 post(s)
+01 https://www.linkedin.com/feed/update/urn:li:share:123
+  │ Social engagements 103 → 75 (-28)
+  │ LinkedIn revision detected
+```
+
 ## Agent skill
 
 Install the repository skill, then load the version-matched instructions from
